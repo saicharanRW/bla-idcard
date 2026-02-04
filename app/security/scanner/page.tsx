@@ -26,7 +26,6 @@ export default function SecurityScannerPage() {
     'idle' | 'success' | 'denied' | 'not_found' | 'already_entered' | 'verified'
   >('idle');
   const [scannedPerson, setScannedPerson] = useState<any>(null);
-  const [showQRScanner, setShowQRScanner] = useState(false);
   const [processing, setProcessing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -60,7 +59,7 @@ export default function SecurityScannerPage() {
         setScanHistory([entry, ...scanHistory.slice(0, 9)]);
         setTimeout(() => {
           resetScanner();
-        }, 1000);
+        }, 2000);
       } else {
         alert("Failed to record entry");
       }
@@ -86,24 +85,32 @@ export default function SecurityScannerPage() {
         setEntryStatus('not_found');
         setScannedPerson(null);
         setProcessing(false);
+        setTimeout(() => {
+          resetScanner();
+        }, 2000);
       } else if (data.status === 'already_entered') {
         setEntryStatus('already_entered');
-        setScannedPerson(null); // Don't show details
+        setScannedPerson(null);
         setProcessing(false);
         setTimeout(() => {
           resetScanner();
-        }, 1000);
+        }, 2000);
       } else if (data.status === 'allowed') {
-        // Automatically mark as entered
         await markAsEntered(code, data.person);
       } else {
         setEntryStatus('denied');
         setProcessing(false);
+        setTimeout(() => {
+          resetScanner();
+        }, 2000);
       }
     } catch (err) {
       console.error("Verification error", err);
       setEntryStatus('denied');
       setProcessing(false);
+      setTimeout(() => {
+        resetScanner();
+      }, 2000);
     }
   };
 
@@ -121,122 +128,96 @@ export default function SecurityScannerPage() {
   };
 
   const handleQRCodeScanned = (qrData: string) => {
-    setShowQRScanner(false);
+    // Don't close scanner, just process
     processQRCode(qrData);
   };
 
   const handleQRScanError = (error: string) => {
     console.error("QR Scan Error:", error);
-    alert(`QR Scan Error: ${error}`);
+    // Suppress alerts for scan errors as they can be noisy in continuous mode
   };
 
   return (
-    <div className="min-h-screen space-y-4 sm:space-y-6 py-4 sm:py-8">
+    <div className="min-h-screen p-4 sm:p-6 space-y-6 max-w-lg mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">QR Code Scanner</h1>
-        <p className="text-muted-foreground text-sm sm:text-base mt-1">
-          Fast and secure guest entry verification
+      <div className="text-center sm:text-left">
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Entry Scanner</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Continuous scanning mode enabled
         </p>
       </div>
 
-      {/* QR Scanner Input */}
-      <Card className="p-4 sm:p-8 bg-card border-border">
-        <form onSubmit={handleQRSubmit} className="space-y-4">
-          <label className="block">
-            <p className="text-foreground font-medium text-sm sm:text-base mb-2">Scan QR Code</p>
+      <div className="space-y-6">
+        {/* Main Scanner Card */}
+        <Card className="p-4 sm:p-6 bg-card border-border space-y-4">
+          <div className="rounded-lg overflow-hidden bg-muted aspect-square relative">
+            <QRScanner
+              onScan={handleQRCodeScanned}
+              onError={handleQRScanError}
+              variant="inline"
+              scanDelay={2000}
+            />
+          </div>
+
+          <form onSubmit={handleQRSubmit} className="flex gap-2">
             <Input
               ref={inputRef}
               type="text"
-              placeholder="Point camera at QR code or paste here..."
+              placeholder="Type ID manually..."
               value={qrInput}
               onChange={(e) => setQrInput(e.target.value)}
-              className="bg-input text-foreground text-base sm:text-lg p-3 sm:p-4 min-h-12"
+              className="bg-input text-foreground"
               autoComplete="off"
             />
-            <p className="text-xs text-muted-foreground mt-2">
-              Keep this field focused while scanning
-            </p>
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Button
-              type="button"
-              onClick={() => setShowQRScanner(true)}
-              className="w-full bg-blue-600 text-white hover:bg-blue-700 min-h-10 sm:min-h-12 text-sm sm:text-base"
-            >
-              <Camera className="w-4 h-4 mr-2" />
-              Open Camera Scanner
+            <Button type="submit" disabled={!qrInput.trim()}>
+              Check
             </Button>
-            <Button
-              type="submit"
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 min-h-10 sm:min-h-12 text-sm sm:text-base"
-              disabled={!qrInput.trim()}
-            >
-              Verify Entry
-            </Button>
-          </div>
-        </form>
-      </Card>
+          </form>
+        </Card>
 
-      {/* QR Scanner Modal */}
-      {showQRScanner && (
-        <QRScanner
-          onScan={handleQRCodeScanned}
-          onError={handleQRScanError}
-          onClose={() => setShowQRScanner(false)}
-        />
-      )}
-
-      {/* Result Display */}
-      {(entryStatus === 'success' || entryStatus === 'already_entered' || entryStatus === 'not_found' || entryStatus === 'denied') && (
-        <Card
-          className={`p-4 sm:p-8 border-2 ${entryStatus === 'success'
-            ? 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900'
-            : entryStatus === 'denied' || entryStatus === 'not_found'
-              ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900'
-              : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900'
-            }`}
-        >
-          <div className="space-y-4 text-center">
-            <div className="flex flex-col items-center gap-3">
+        {/* Result Display */}
+        {entryStatus !== 'idle' && (
+          <Card
+            className={`p-6 border-2 text-center animate-in fade-in zoom-in duration-300 ${entryStatus === 'success'
+                ? 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900'
+                : entryStatus === 'denied' || entryStatus === 'not_found'
+                  ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900'
+                  : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900'
+              }`}
+          >
+            <div className="flex flex-col items-center gap-2">
               {entryStatus === 'success' && (
                 <>
                   <CheckCircle className="w-16 h-16 text-green-600" />
-                  <p className="text-2xl font-bold text-green-600">
-                    Entered Successfully
-                  </p>
+                  <h2 className="text-2xl font-bold text-green-600">ALLOWED</h2>
+                  <p className="text-green-700">Entry Recorded</p>
                 </>
               )}
               {entryStatus === 'already_entered' && (
                 <>
                   <AlertTriangle className="w-16 h-16 text-yellow-600" />
-                  <p className="text-2xl font-bold text-yellow-600">
-                    Already Entered
-                  </p>
+                  <h2 className="text-2xl font-bold text-yellow-600">WARNING</h2>
+                  <p className="text-yellow-700">Already Entered</p>
                 </>
               )}
               {entryStatus === 'not_found' && (
                 <>
                   <XCircle className="w-16 h-16 text-red-600" />
-                  <p className="text-2xl font-bold text-red-600">
-                    Guest Not Found
-                  </p>
+                  <h2 className="text-2xl font-bold text-red-600">INVALID</h2>
+                  <p className="text-red-700">Guest Not Found</p>
                 </>
               )}
               {entryStatus === 'denied' && (
                 <>
                   <XCircle className="w-16 h-16 text-red-600" />
-                  <p className="text-2xl font-bold text-red-600">
-                    Access Denied
-                  </p>
+                  <h2 className="text-2xl font-bold text-red-600">DENIED</h2>
+                  <p className="text-red-700">Access Denied</p>
                 </>
               )}
             </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Legacy/Reset State (Hidden mostly due to auto-reset) */}
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
