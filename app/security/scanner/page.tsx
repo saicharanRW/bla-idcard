@@ -34,6 +34,44 @@ export default function SecurityScannerPage() {
     inputRef.current?.focus();
   }, []);
 
+  const resetScanner = () => {
+    setEntryStatus('idle');
+    setScannedPerson(null);
+    setQrInput('');
+    inputRef.current?.focus();
+  };
+
+  const markAsEntered = async (qrData: string, person: any) => {
+    try {
+      const res = await fetch('/api/mark-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qr_data: qrData }),
+      });
+      if (res.ok) {
+        setEntryStatus('success');
+        const entry: GuestEntry = {
+          id: qrData,
+          name: person.bla2_name,
+          email: person.party_responsibility,
+          isAllowed: true,
+          timestamp: new Date().toLocaleTimeString(),
+        };
+        setScanHistory([entry, ...scanHistory.slice(0, 9)]);
+        setTimeout(() => {
+          resetScanner();
+        }, 1000);
+      } else {
+        alert("Failed to record entry");
+      }
+    } catch (err) {
+      console.error("Entry error", err);
+      alert("Error recording entry");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const verifyQRCode = async (code: string) => {
     setProcessing(true);
     try {
@@ -47,55 +85,24 @@ export default function SecurityScannerPage() {
       if (data.status === 'not_found') {
         setEntryStatus('not_found');
         setScannedPerson(null);
+        setProcessing(false);
       } else if (data.status === 'already_entered') {
         setEntryStatus('already_entered');
-        setScannedPerson(data.person);
+        setScannedPerson(null); // Don't show details
+        setProcessing(false);
+        setTimeout(() => {
+          resetScanner();
+        }, 1000);
       } else if (data.status === 'allowed') {
-        setEntryStatus('verified'); // Ready to mark as entered
-        setScannedPerson(data.person);
+        // Automatically mark as entered
+        await markAsEntered(code, data.person);
       } else {
         setEntryStatus('denied');
+        setProcessing(false);
       }
     } catch (err) {
       console.error("Verification error", err);
       setEntryStatus('denied');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const markAsEntered = async () => {
-    if (!scannedPerson) return;
-    setProcessing(true);
-    try {
-      const res = await fetch('/api/mark-entry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ qr_data: scannedPerson.qr_data }),
-      });
-      if (res.ok) {
-        setEntryStatus('success');
-        const entry: GuestEntry = {
-          id: scannedPerson.qr_data,
-          name: scannedPerson.bla2_name,
-          email: scannedPerson.party_responsibility, // mapping responsibility to email field for display
-          isAllowed: true,
-          timestamp: new Date().toLocaleTimeString(),
-        };
-        setScanHistory([entry, ...scanHistory.slice(0, 9)]);
-        setTimeout(() => {
-          setEntryStatus('idle');
-          setScannedPerson(null);
-          setQrInput('');
-          inputRef.current?.focus();
-        }, 2000);
-      } else {
-        alert("Failed to record entry");
-      }
-    } catch (err) {
-      console.error("Entry error", err);
-      alert("Error recording entry");
-    } finally {
       setProcessing(false);
     }
   };
@@ -181,7 +188,7 @@ export default function SecurityScannerPage() {
       )}
 
       {/* Result Display */}
-      {scannedPerson && (
+      {(entryStatus === 'success' || entryStatus === 'already_entered' || entryStatus === 'not_found' || entryStatus === 'denied') && (
         <Card
           className={`p-4 sm:p-8 border-2 ${entryStatus === 'success'
             ? 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900'
@@ -190,115 +197,46 @@ export default function SecurityScannerPage() {
               : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900'
             }`}
         >
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
+          <div className="space-y-4 text-center">
+            <div className="flex flex-col items-center gap-3">
               {entryStatus === 'success' && (
                 <>
-                  <CheckCircle className="w-6 sm:w-8 h-6 sm:h-8 text-green-600 flex-shrink-0" />
-                  <p className="text-base sm:text-lg font-semibold text-green-600">
-                    Entry Recorded
-                  </p>
-                </>
-              )}
-              {entryStatus === 'verified' && (
-                <>
-                  <CheckCircle className="w-6 sm:w-8 h-6 sm:h-8 text-blue-600 flex-shrink-0" />
-                  <p className="text-base sm:text-lg font-semibold text-blue-600">
-                    Access Granted - Verify Details
+                  <CheckCircle className="w-16 h-16 text-green-600" />
+                  <p className="text-2xl font-bold text-green-600">
+                    Entered Successfully
                   </p>
                 </>
               )}
               {entryStatus === 'already_entered' && (
                 <>
-                  <AlertTriangle className="w-6 sm:w-8 h-6 sm:h-8 text-yellow-600 flex-shrink-0" />
-                  <p className="text-base sm:text-lg font-semibold text-yellow-600">
+                  <AlertTriangle className="w-16 h-16 text-yellow-600" />
+                  <p className="text-2xl font-bold text-yellow-600">
                     Already Entered
                   </p>
                 </>
               )}
               {entryStatus === 'not_found' && (
                 <>
-                  <XCircle className="w-6 sm:w-8 h-6 sm:h-8 text-red-600 flex-shrink-0" />
-                  <p className="text-base sm:text-lg font-semibold text-red-600">
-                    Not Found / Invalid QR
+                  <XCircle className="w-16 h-16 text-red-600" />
+                  <p className="text-2xl font-bold text-red-600">
+                    Guest Not Found
+                  </p>
+                </>
+              )}
+              {entryStatus === 'denied' && (
+                <>
+                  <XCircle className="w-16 h-16 text-red-600" />
+                  <p className="text-2xl font-bold text-red-600">
+                    Access Denied
                   </p>
                 </>
               )}
             </div>
-
-            <div className="space-y-2 border-t pt-4">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <span className="font-semibold text-muted-foreground">Name:</span>
-                <span className="font-bold text-foreground text-lg">{scannedPerson.bla2_name}</span>
-
-                <span className="font-semibold text-muted-foreground">Responsibility:</span>
-                <span>{scannedPerson.party_responsibility}</span>
-
-                <span className="font-semibold text-muted-foreground">District:</span>
-                <span>{scannedPerson.party_district}</span>
-
-                <span className="font-semibold text-muted-foreground">Assembly:</span>
-                <span>{scannedPerson.assembly_constituency}</span>
-
-                <span className="font-semibold text-muted-foreground">Station:</span>
-                <span>{scannedPerson.polling_station_number}</span>
-              </div>
-            </div>
-
-            {entryStatus === 'verified' && (
-              <div className="pt-4">
-                <Button
-                  onClick={markAsEntered}
-                  disabled={processing}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white min-h-12 text-lg font-bold shadow-lg"
-                >
-                  {processing ? 'Processing...' : 'ALLOW ENTRY'}
-                </Button>
-              </div>
-            )}
-
-            {entryStatus !== 'verified' && entryStatus !== 'success' && entryStatus !== 'already_entered' && (
-              <div className="pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setEntryStatus('idle');
-                    setScannedPerson(null);
-                    setQrInput('');
-                    inputRef.current?.focus();
-                  }}
-                  className="w-full"
-                >
-                  Reset / Scan Next
-                </Button>
-              </div>
-            )}
-
           </div>
         </Card>
       )}
 
-      {/* Show Not Found state explicitly if scannedPerson is null but status is not_found */}
-      {!scannedPerson && entryStatus === 'not_found' && (
-        <Card className="p-4 sm:p-8 bg-red-50 border-2 border-red-200">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <XCircle className="w-12 h-12 text-red-600" />
-            <h3 className="text-xl font-bold text-red-600">Guest Not Found</h3>
-            <p className="text-muted-foreground">The scanned QR code does not match any record in the database.</p>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setEntryStatus('idle');
-                setQrInput('');
-                inputRef.current?.focus();
-              }}
-              className="mt-4 w-full"
-            >
-              Try Again
-            </Button>
-          </div>
-        </Card>
-      )}
+      {/* Legacy/Reset State (Hidden mostly due to auto-reset) */}
     </div>
   );
 }
