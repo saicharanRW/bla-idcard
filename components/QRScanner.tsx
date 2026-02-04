@@ -67,8 +67,8 @@ export function QRScanner({
                 onDecodeError: (error) => {
                     // Don't show decode errors
                 },
-                highlightScanRegion: true,
-                highlightCodeOutline: true,
+                highlightScanRegion: false,
+                highlightCodeOutline: false,
             }
         );
 
@@ -128,7 +128,7 @@ export function QRScanner({
             />
             {(!isScanning && !isPaused) && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-900 text-white">
-                    <div className="text-center">
+                    <div className="text-center -translate-y-12 sm:translate-y-0">
                         <div className="text-4xl mb-2">📷</div>
                         <p>Starting Camera...</p>
                     </div>
@@ -136,7 +136,7 @@ export function QRScanner({
             )}
             {isPaused && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-10">
-                    <div className="text-white text-lg font-medium animate-pulse">
+                    <div className="text-white text-lg font-medium animate-pulse -translate-y-12 sm:translate-y-0">
                         Processing...
                     </div>
                 </div>
@@ -151,15 +151,6 @@ export function QRScanner({
                     </div>
                 </div>
             )}
-            {/* Overlay Guidelines */}
-            <div className="absolute inset-0 border-2 border-white/30 rounded-lg pointer-events-none">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-white/50 rounded-lg">
-                    <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-white"></div>
-                    <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-white"></div>
-                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-white"></div>
-                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-white"></div>
-                </div>
-            </div>
         </div>
     );
 
