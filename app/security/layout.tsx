@@ -87,17 +87,38 @@ export default function SecurityLayout({
   return (
     <div className="min-h-screen bg-background">
       <nav className="bg-sidebar border-b border-sidebar-border sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link href="/security/scanner" className="text-xl font-bold text-sidebar-foreground">
-              Security Scanner
-            </Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sidebar-foreground text-sm">{user?.email}</span>
-            <Button onClick={handleLogout} variant="outline" size="sm" className="border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent bg-transparent">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          {/* Mobile Layout */}
+          <div className="flex md:hidden justify-end items-start gap-4">
+            <div className="flex flex-col items-center gap-2">
+              <Link href="/security/scanner" className="text-xl font-bold text-sidebar-foreground">
+                Security Scanner
+              </Link>
+              <span className="text-sidebar-foreground text-sm">{user?.email}</span>
+            </div>
+            <Button 
+              onClick={handleLogout} 
+              variant="outline" 
+              size="sm" 
+              className="border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent bg-transparent"
+            >
               Logout
             </Button>
+          </div>
+          
+          {/* Desktop Layout */}
+          <div className="hidden md:flex items-center justify-between">
+            <div className="flex items-center gap-8">
+              <Link href="/security/scanner" className="text-xl font-bold text-sidebar-foreground">
+                Security Scanner
+              </Link>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sidebar-foreground text-sm">{user?.email}</span>
+              <Button onClick={handleLogout} variant="outline" size="sm" className="border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent bg-transparent">
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </nav>
