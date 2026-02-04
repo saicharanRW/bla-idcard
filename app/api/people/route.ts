@@ -13,7 +13,7 @@ export async function GET() {
         const formattedData = data.map((person) => ({
             ...person,
             entered_at: person.entered_at
-                ? new Date(person.entered_at).toISOString().slice(0, 19)
+                ? new Date(person.entered_at).toISOString()
                 : null,
         }));
 
