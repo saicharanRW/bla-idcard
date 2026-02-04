@@ -18,15 +18,26 @@ export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
     const [isScanning, setIsScanning] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Use refs for callbacks to prevent unnecessary scanner re-initialization
+    const onScanRef = useRef(onScan);
+    const onErrorRef = useRef(onError);
+
+    useEffect(() => {
+        onScanRef.current = onScan;
+        onErrorRef.current = onError;
+    }, [onScan, onError]);
+
     useEffect(() => {
         if (!videoRef.current) return;
+
+        let mounted = true;
 
         const qrScanner = new QrScanner(
             videoRef.current,
             (result) => {
-                onScan(result.data);
+                if (onScanRef.current) onScanRef.current(result.data);
                 qrScanner.stop();
-                setIsScanning(false);
+                if (mounted) setIsScanning(false);
             },
             {
                 onDecodeError: (error) => {
@@ -40,10 +51,25 @@ export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
 
         qrScannerRef.current = qrScanner;
 
+        // Auto-start scanning
+        qrScanner.start()
+            .then(() => {
+                if (mounted) setIsScanning(true);
+            })
+            .catch((err) => {
+                if (mounted) {
+                    const errorMessage = err instanceof Error ? err.message : "Failed to start camera";
+                    setError(errorMessage);
+                    onErrorRef.current?.(errorMessage);
+                }
+            });
+
         return () => {
+            mounted = false;
             qrScanner.destroy();
+            // We don't set isScanning(false) here because component might be unmounting
         };
-    }, [onScan]);
+    }, []); // Run once on mount
 
     const startScanning = async () => {
         if (!qrScannerRef.current) return;
@@ -55,7 +81,7 @@ export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "Failed to start camera";
             setError(errorMessage);
-            onError?.(errorMessage);
+            onErrorRef.current?.(errorMessage);
         }
     };
 
@@ -97,7 +123,7 @@ export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
                             <div className="absolute inset-0 flex items-center justify-center bg-muted rounded-lg">
                                 <div className="text-center">
                                     <div className="text-muted-foreground mb-2 text-4xl">📷</div>
-                                    <p className="text-muted-foreground">Camera not started</p>
+                                    <p className="text-muted-foreground">Starting Camera...</p>
                                 </div>
                             </div>
                         )}
@@ -113,9 +139,10 @@ export function QRScanner({ onScan, onError, onClose }: QRScannerProps) {
                         {!isScanning ? (
                             <Button
                                 onClick={startScanning}
+                                disabled={!error}
                                 className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 font-medium"
                             >
-                                Start Camera
+                                {error ? "Retry Camera" : "Starting..."}
                             </Button>
                         ) : (
                             <Button
