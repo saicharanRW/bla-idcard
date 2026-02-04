@@ -281,22 +281,30 @@ export default function AdminDashboard() {
               <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4">
                 Guest Arrivals Timeline
               </h3>
-              <ResponsiveContainer width="100%" height={250} minWidth={0}>
-                <BarChart data={hourlyArrivals}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="time" stroke="var(--muted-foreground)" />
-                  <YAxis stroke="var(--muted-foreground)" allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'var(--card)',
-                      border: `1px solid var(--border)`,
-                      borderRadius: '0.625rem',
-                    }}
-                    labelStyle={{ color: 'var(--foreground)' }}
-                  />
-                  <Bar dataKey="guests" fill="var(--accent)" />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="h-[250px] w-full flex items-center justify-center">
+                {hourlyArrivals.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <BarChart data={hourlyArrivals}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="time" stroke="var(--muted-foreground)" />
+                      <YAxis stroke="var(--muted-foreground)" allowDecimals={false} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'var(--card)',
+                          border: `1px solid var(--border)`,
+                          borderRadius: '0.625rem',
+                        }}
+                        labelStyle={{ color: 'var(--foreground)' }}
+                      />
+                      <Bar dataKey="guests" fill="var(--accent)" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="text-center">
+                    <p className="text-muted-foreground text-sm italic">No data available for this date</p>
+                  </div>
+                )}
+              </div>
             </Card>
 
             {/* Check-in Status */}
@@ -304,34 +312,42 @@ export default function AdminDashboard() {
               <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4">
                 Check-in Status
               </h3>
-              <ResponsiveContainer width="100%" height={250} minWidth={0}>
-                <PieChart>
-                  <Pie
-                    data={dynamicEntranceStats}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, value, percent }) =>
-                      `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
-                    }
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {dynamicEntranceStats.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'var(--card)',
-                      border: `1px solid var(--border)`,
-                      borderRadius: '0.625rem',
-                    }}
-                    labelStyle={{ color: 'var(--foreground)' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <div className="h-[250px] w-full flex items-center justify-center">
+                {dateFilteredStats.total_invited > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <PieChart>
+                      <Pie
+                        data={dynamicEntranceStats}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, value, percent }) =>
+                          `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                        }
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {dynamicEntranceStats.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'var(--card)',
+                          border: `1px solid var(--border)`,
+                          borderRadius: '0.625rem',
+                        }}
+                        labelStyle={{ color: 'var(--foreground)' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="text-center">
+                    <p className="text-muted-foreground text-sm italic">No data available</p>
+                  </div>
+                )}
+              </div>
             </Card>
           </div>
 
@@ -340,32 +356,40 @@ export default function AdminDashboard() {
             <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4">
               Cumulative Guest Arrivals
             </h3>
-            <ResponsiveContainer width="100%" height={250} minWidth={0}>
-              <LineChart
-                data={cumulativeArrivals}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="time" stroke="var(--muted-foreground)" />
-                <YAxis stroke="var(--muted-foreground)" allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'var(--card)',
-                    border: `1px solid var(--border)`,
-                    borderRadius: '0.625rem',
-                  }}
-                  labelStyle={{ color: 'var(--foreground)' }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="total"
-                  stroke="var(--accent)"
-                  strokeWidth={2}
-                  dot={{ fill: 'var(--accent)', r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="h-[250px] w-full flex items-center justify-center">
+              {cumulativeArrivals.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <LineChart
+                    data={cumulativeArrivals}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="time" stroke="var(--muted-foreground)" />
+                    <YAxis stroke="var(--muted-foreground)" allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'var(--card)',
+                        border: `1px solid var(--border)`,
+                        borderRadius: '0.625rem',
+                      }}
+                      labelStyle={{ color: 'var(--foreground)' }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      stroke="var(--accent)"
+                      strokeWidth={2}
+                      dot={{ fill: 'var(--accent)', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center">
+                  <p className="text-muted-foreground text-sm italic">No data available for this date</p>
+                </div>
+              )}
+            </div>
           </Card>
         </>
       ) : (
